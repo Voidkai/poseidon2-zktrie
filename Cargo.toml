@@ -1,0 +1,15 @@
+[package]
+name = "poseidon2"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+halo2_proofs = { git = "https://github.com/DelphinusLab/halo2-gpu-specific.git", default-features = true }
+subtle = { version = "2.3", default-features = false }
+
+[dev-dependencies]
+rand_core = { version = "0.6", default-features = false }
+
+[features]
+default = []
+cuda = ["halo2_proofs/cuda"]
