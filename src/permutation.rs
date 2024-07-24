@@ -79,13 +79,13 @@ mod tests {
         // run_test!([8, 57, 10, 9]);
     }
     #[test]
-    fn test_spec(){
+    fn test_spec() {
         const R_F: usize = 8;
         const R_P: usize = 56;
         const T: usize = 3;
         const RATE: usize = 2;
 
-        let state:State<3> = State(
+        let state: State<3> = State(
             vec![0u64, 1, 2]
                 .into_iter()
                 .map(Fr::from)
@@ -100,39 +100,72 @@ mod tests {
         let spec = Spec::<T, RATE>::new_from_instance(R_F, R_P);
 
         assert_eq!(spec.constants.len(), R_F + R_P);
-        assert_eq!(spec.constants[0], [from_hex("0x1d066a255517b7fd8bddd3a93f7804ef7f8fcde48bb4c37a59a09a1a97052816"),
-        from_hex("0x29daefb55f6f2dc6ac3f089cebcc6120b7c6fef31367b68eb7238547d32c1610"),
-        from_hex("0x1f2cb1624a78ee001ecbd88ad959d7012572d76f08ec5c4f9e8b7ad7b0b4e1d1")]);
-        assert_eq!(spec.constants[4], [from_hex("0x1a1d063e54b1e764b63e1855bff015b8cedd192f47308731499573f23597d4b5"),
-        from_hex("0x0000000000000000000000000000000000000000000000000000000000000000"),
-        from_hex("0x0000000000000000000000000000000000000000000000000000000000000000"),
-        ]);
+        assert_eq!(
+            spec.constants[0],
+            [
+                from_hex("0x1d066a255517b7fd8bddd3a93f7804ef7f8fcde48bb4c37a59a09a1a97052816"),
+                from_hex("0x29daefb55f6f2dc6ac3f089cebcc6120b7c6fef31367b68eb7238547d32c1610"),
+                from_hex("0x1f2cb1624a78ee001ecbd88ad959d7012572d76f08ec5c4f9e8b7ad7b0b4e1d1")
+            ]
+        );
+        assert_eq!(
+            spec.constants[4],
+            [
+                from_hex("0x1a1d063e54b1e764b63e1855bff015b8cedd192f47308731499573f23597d4b5"),
+                from_hex("0x0000000000000000000000000000000000000000000000000000000000000000"),
+                from_hex("0x0000000000000000000000000000000000000000000000000000000000000000"),
+            ]
+        );
 
-        assert_eq!(spec.mds_external.0.0[0], [Fr::from_str_vartime("2").unwrap(),
-        Fr::from_str_vartime("1").unwrap(),
-        Fr::from_str_vartime("1").unwrap(),
-        ]);
-        assert_eq!(spec.mds_external.0.0[1], [Fr::from_str_vartime("1").unwrap(),
-        Fr::from_str_vartime("2").unwrap(),
-        Fr::from_str_vartime("1").unwrap(),
-        ]);
-        assert_eq!(spec.mds_external.0.0[2], [Fr::from_str_vartime("1").unwrap(),
-        Fr::from_str_vartime("1").unwrap(),
-        Fr::from_str_vartime("2").unwrap(),
-        ]);
+        assert_eq!(
+            spec.mds_external.0 .0[0],
+            [
+                Fr::from_str_vartime("2").unwrap(),
+                Fr::from_str_vartime("1").unwrap(),
+                Fr::from_str_vartime("1").unwrap(),
+            ]
+        );
+        assert_eq!(
+            spec.mds_external.0 .0[1],
+            [
+                Fr::from_str_vartime("1").unwrap(),
+                Fr::from_str_vartime("2").unwrap(),
+                Fr::from_str_vartime("1").unwrap(),
+            ]
+        );
+        assert_eq!(
+            spec.mds_external.0 .0[2],
+            [
+                Fr::from_str_vartime("1").unwrap(),
+                Fr::from_str_vartime("1").unwrap(),
+                Fr::from_str_vartime("2").unwrap(),
+            ]
+        );
 
-        assert_eq!(spec.mds_internal.0.0[0], [Fr::from_str_vartime("2").unwrap(),
-        Fr::from_str_vartime("1").unwrap(),
-        Fr::from_str_vartime("1").unwrap(),
-        ]);
-        assert_eq!(spec.mds_internal.0.0[1], [Fr::from_str_vartime("1").unwrap(),
-        Fr::from_str_vartime("2").unwrap(),
-        Fr::from_str_vartime("1").unwrap(),
-        ]);
-        assert_eq!(spec.mds_internal.0.0[2], [Fr::from_str_vartime("1").unwrap(),
-        Fr::from_str_vartime("1").unwrap(),
-        Fr::from_str_vartime("3").unwrap(),
-        ]);
+        assert_eq!(
+            spec.mds_internal.0 .0[0],
+            [
+                Fr::from_str_vartime("2").unwrap(),
+                Fr::from_str_vartime("1").unwrap(),
+                Fr::from_str_vartime("1").unwrap(),
+            ]
+        );
+        assert_eq!(
+            spec.mds_internal.0 .0[1],
+            [
+                Fr::from_str_vartime("1").unwrap(),
+                Fr::from_str_vartime("2").unwrap(),
+                Fr::from_str_vartime("1").unwrap(),
+            ]
+        );
+        assert_eq!(
+            spec.mds_internal.0 .0[2],
+            [
+                Fr::from_str_vartime("1").unwrap(),
+                Fr::from_str_vartime("1").unwrap(),
+                Fr::from_str_vartime("3").unwrap(),
+            ]
+        );
     }
 
     #[test]
@@ -144,7 +177,7 @@ mod tests {
         const T: usize = 3;
         const RATE: usize = 2;
 
-        let state:State<3> = State(
+        let state: State<3> = State(
             vec![0u64, 1, 2]
                 .into_iter()
                 .map(Fr::from)

@@ -3,7 +3,6 @@
 //! with the intention of construction of parameters and are not used in the
 //! actual permutation process.
 
-
 use halo2_proofs::arithmetic::FieldExt;
 
 #[derive(PartialEq, Debug, Clone)]

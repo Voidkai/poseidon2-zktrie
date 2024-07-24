@@ -8,8 +8,8 @@
 mod matrix;
 mod permutation;
 mod poseidon2;
-mod spec;
 mod poseidon2_instance;
+mod spec;
 
 pub use crate::poseidon2::Poseidon2;
 pub use crate::spec::{MDSMatrix, SparseMDSMatrix, Spec, State};

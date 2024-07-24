@@ -1,9 +1,9 @@
+use std::ops::AddAssign;
 use std::ops::Index;
 use std::ops::MulAssign;
-use std::ops::AddAssign;
 //use crate::grain::Grain;
-use crate::poseidon2_instance::RC3;
 use crate::matrix::Matrix;
+use crate::poseidon2_instance::RC3;
 use halo2_proofs::arithmetic::Field;
 use halo2_proofs::pairing::group::ff::PrimeField;
 use halo2_proofs::{arithmetic::FieldExt, pairing::bn256::Fr};
@@ -225,9 +225,7 @@ impl<const T: usize, const RATE: usize> SparseMDSMatrix<T, RATE> {
     }
 }
 
-impl<const T: usize, const RATE: usize> From<MDSMatrix<T, RATE>>
-    for SparseMDSMatrix<T, RATE>
-{
+impl<const T: usize, const RATE: usize> From<MDSMatrix<T, RATE>> for SparseMDSMatrix<T, RATE> {
     /// Assert the form and represent an MDS matrix as a sparse MDS matrix
     fn from(mds: MDSMatrix<T, RATE>) -> Self {
         let mds = mds.0;
@@ -282,52 +280,58 @@ impl Spec<3, 2> {
     /// calculates optimized constants and sparse matrices
     pub fn new_from_instance(r_f: usize, r_p: usize) -> Self {
         // let (constants, mds) = Grain::generate(r_f, r_p);
-            let constants = (0..(r_f+r_p))
+        let constants = (0..(r_f + r_p))
             .map(|i| {
                 let mut round_constants = [Fr::zero(); 3];
-                for (j,c ) in round_constants.iter_mut().enumerate() {
+                for (j, c) in round_constants.iter_mut().enumerate() {
                     *c = RC3[i][j];
                 }
                 round_constants
             })
             .collect::<Vec<[Fr; 3]>>();
-            
-            let mds_external = MDSMatrix::<3, 2>(Matrix([
-                [Fr::from_str_vartime("2").unwrap(),
-                Fr::from_str_vartime("1").unwrap(),
-                Fr::from_str_vartime("1").unwrap(),
-                ],
-                [Fr::from_str_vartime("1").unwrap(),
-                Fr::from_str_vartime("2").unwrap(),
-                Fr::from_str_vartime("1").unwrap(),
-                ],
-                [Fr::from_str_vartime("1").unwrap(),
-                Fr::from_str_vartime("1").unwrap(),
-                Fr::from_str_vartime("2").unwrap(),
-                ]
-            ]));
 
-            let mds_internal = MDSMatrix::<3,2>(Matrix([
-                [Fr::from_str_vartime("2").unwrap(),
-                Fr::from_str_vartime("1").unwrap(),
-                Fr::from_str_vartime("1").unwrap(),
-                ],
-                [Fr::from_str_vartime("1").unwrap(),
+        let mds_external = MDSMatrix::<3, 2>(Matrix([
+            [
                 Fr::from_str_vartime("2").unwrap(),
                 Fr::from_str_vartime("1").unwrap(),
-                ],
-                [Fr::from_str_vartime("1").unwrap(),
+                Fr::from_str_vartime("1").unwrap(),
+            ],
+            [
+                Fr::from_str_vartime("1").unwrap(),
+                Fr::from_str_vartime("2").unwrap(),
+                Fr::from_str_vartime("1").unwrap(),
+            ],
+            [
+                Fr::from_str_vartime("1").unwrap(),
+                Fr::from_str_vartime("1").unwrap(),
+                Fr::from_str_vartime("2").unwrap(),
+            ],
+        ]));
+
+        let mds_internal = MDSMatrix::<3, 2>(Matrix([
+            [
+                Fr::from_str_vartime("2").unwrap(),
+                Fr::from_str_vartime("1").unwrap(),
+                Fr::from_str_vartime("1").unwrap(),
+            ],
+            [
+                Fr::from_str_vartime("1").unwrap(),
+                Fr::from_str_vartime("2").unwrap(),
+                Fr::from_str_vartime("1").unwrap(),
+            ],
+            [
+                Fr::from_str_vartime("1").unwrap(),
                 Fr::from_str_vartime("1").unwrap(),
                 Fr::from_str_vartime("3").unwrap(),
-                ]
-            ]));
-            
-            Self {
-                r_f,
-                r_p,
-                mds_external,
-                mds_internal,
-                constants,
-            }
+            ],
+        ]));
+
+        Self {
+            r_f,
+            r_p,
+            mds_external,
+            mds_internal,
+            constants,
+        }
     }
 }
