@@ -6,6 +6,9 @@ edition = "2021"
 [dependencies]
 halo2_proofs = { git = "https://github.com/DelphinusLab/halo2-gpu-specific.git", default-features = true }
 subtle = { version = "2.3", default-features = false }
+lazy_static = "1.4"
+num-bigint = "0.4.0"
+num-traits = "0.2.14"
 
 [dev-dependencies]
 rand_core = { version = "0.6", default-features = false }

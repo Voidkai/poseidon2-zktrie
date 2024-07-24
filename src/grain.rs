@@ -1,6 +1,6 @@
-use crate::spec::MDSMatrix;
+use crate::{poseidon2_instance::RC3, spec::MDSMatrix};
 
-use halo2_proofs::arithmetic::FieldExt;
+use halo2_proofs::{arithmetic::FieldExt, pairing::bn256::Fr};
 use std::marker::PhantomData;
 
 /// Grain initializes round constants and MDS matrix at given sponge parameters
@@ -10,7 +10,7 @@ pub(super) struct Grain<F: FieldExt, const T: usize, const RATE: usize> {
 }
 
 impl<F: FieldExt, const T: usize, const RATE: usize> Grain<F, T, RATE> {
-    pub(crate) fn generate(r_f: usize, r_p: usize) -> (Vec<[F; T]>, MDSMatrix<F, T, RATE>) {
+    pub(crate) fn generate(r_f: usize, r_p: usize) -> (Vec<[F; T]>, MDSMatrix<T, RATE>) {
         debug_assert!(T > 1 && T == RATE + 1);
 
         // Support only prime field construction
@@ -50,15 +50,15 @@ impl<F: FieldExt, const T: usize, const RATE: usize> Grain<F, T, RATE> {
         let number_of_rounds = r_p as usize + r_f as usize;
         let constants = (0..number_of_rounds)
             .map(|_| {
-                let mut round_constants = [F::zero(); T];
+                let mut round_constants = [Fr::zero(); T];
                 for c in round_constants.iter_mut() {
                     *c = grain.next_field_element();
                 }
                 round_constants
             })
-            .collect::<Vec<[F; T]>>();
+            .collect::<Vec<[Fr; T]>>();
 
-        let (mut xs, mut ys) = ([F::zero(); T], [F::zero(); T]);
+        let (mut xs, mut ys) = ([Fr::zero(); T], [Fr::zero(); T]);
         for x in xs.iter_mut() {
             *x = grain.next_field_element_without_rejection();
         }
@@ -71,10 +71,10 @@ impl<F: FieldExt, const T: usize, const RATE: usize> Grain<F, T, RATE> {
 
     /// Credit: https://github.com/zcash/halo2/tree/main/halo2_gadgets/src/primitives/poseidon
     /// Returns the next field element from this Grain instantiation.
-    pub(super) fn next_field_element(&mut self) -> F {
+    pub(super) fn next_field_element(&mut self) -> Fr {
         // Loop until we get an element in the field.
         loop {
-            let mut bytes = F::Repr::default();
+            let mut bytes = Fr::default();
 
             // Poseidon reference impl interprets the bits as a repr in MSB order, because
             // it's easy to do that in Python. Meanwhile, our field elements all use LSB
@@ -84,15 +84,15 @@ impl<F: FieldExt, const T: usize, const RATE: usize> Grain<F, T, RATE> {
             // implement Grain inside a circuit, so we'd use a different round constant
             // derivation function there).
             let view = bytes.as_mut();
-            for (i, bit) in self.take(F::NUM_BITS as usize).enumerate() {
+            for (i, bit) in self.take(Fr::NUM_BITS as usize).enumerate() {
                 // If we diverged from the reference impl and interpreted the bits in LSB
                 // order, we would remove this line.
-                let i = F::NUM_BITS as usize - 1 - i;
+                let i = Fr::NUM_BITS as usize - 1 - i;
 
                 view[i / 8] |= if bit { 1 << (i % 8) } else { 0 };
             }
 
-            if let Some(f) = F::from_repr_vartime(bytes) {
+            if let Some(f) = Fr::from_repr_vartime(bytes) {
                 break f;
             }
         }

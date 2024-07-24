@@ -4,11 +4,12 @@
 #![deny(missing_debug_implementations)]
 #![deny(missing_docs)]
 
-mod grain;
+//mod grain;
 mod matrix;
 mod permutation;
 mod poseidon2;
 mod spec;
+mod poseidon2_instance;
 
 pub use crate::poseidon2::Poseidon2;
-pub use crate::spec::{MDSMatrices, MDSMatrix, SparseMDSMatrix, Spec, State};
+pub use crate::spec::{MDSMatrix, SparseMDSMatrix, Spec, State};

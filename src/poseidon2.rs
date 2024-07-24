@@ -1,16 +1,16 @@
 use crate::{Spec, State};
-use halo2_proofs::arithmetic::FieldExt;
-
+use halo2_proofs::{arithmetic::FieldExt, pairing::bn256::Fr};
+use std::ops::AddAssign;
 /// Poseidon hasher that maintains state and inputs and yields single element
 /// output when desired
 #[derive(Debug, Clone)]
-pub struct Poseidon2<F: FieldExt, const T: usize, const RATE: usize> {
-    state: State<F, T>,
-    spec: Spec<F, T, RATE>,
-    absorbing: Vec<F>,
+pub struct Poseidon2<const T: usize, const RATE: usize> {
+    state: State<T>,
+    spec: Spec<T, RATE>,
+    absorbing: Vec<Fr>,
 }
 
-impl<F: FieldExt, const T: usize, const RATE: usize> Poseidon2<F, T, RATE> {
+impl<const T: usize, const RATE: usize> Poseidon2<T, RATE> {
     /// Constructs a clear state poseidon instance
     pub fn new(r_f: usize, r_p: usize) -> Self {
         Self {
@@ -28,7 +28,7 @@ impl<F: FieldExt, const T: usize, const RATE: usize> Poseidon2<F, T, RATE> {
 
     /// Update n = RATE elements
     /// This assumes the current absorbing list is empty
-    pub fn update_exact(&mut self, elements: &[F; RATE]) -> F {
+    pub fn update_exact(&mut self, elements: &[Fr; RATE]) -> Fr {
         assert!(self.absorbing.len() == 0);
         // Add new chunk of inputs for the next permutation cycle.
         for (input_element, state) in elements.iter().zip(self.state.0.iter_mut().skip(1)) {
@@ -41,7 +41,7 @@ impl<F: FieldExt, const T: usize, const RATE: usize> Poseidon2<F, T, RATE> {
 
     /// Appends elements to the absorption line updates state while `RATE` is
     /// full
-    pub fn update(&mut self, elements: &[F]) {
+    pub fn update(&mut self, elements: &[Fr]) {
         let mut input_elements = self.absorbing.clone();
         input_elements.extend_from_slice(elements);
 
@@ -64,7 +64,7 @@ impl<F: FieldExt, const T: usize, const RATE: usize> Poseidon2<F, T, RATE> {
     }
 
     /// Results a single element by absorbing already added inputs
-    pub fn squeeze(&mut self) -> F {
+    pub fn squeeze(&mut self) -> Fr {
         let mut last_chunk = self.absorbing.clone();
         {
             // Expect padding offset to be in [0, RATE)
@@ -72,7 +72,7 @@ impl<F: FieldExt, const T: usize, const RATE: usize> Poseidon2<F, T, RATE> {
         }
         // Add the finishing sign of the variable length hashing. Note that this mut
         // also apply when absorbing line is empty
-        last_chunk.push(F::one());
+        last_chunk.push(Fr::one());
         // Add the last chunk of inputs to the state for the final permutation cycle
 
         for (input_element, state) in last_chunk.iter().zip(self.state.0.iter_mut().skip(1)) {
@@ -102,7 +102,7 @@ fn test_padding() {
 
     // w/o extra permutation
     {
-        let mut poseidon = Poseidon2::<Fr, T, RATE>::new(R_F, R_P);
+        let mut poseidon = Poseidon2::<T, RATE>::new(R_F, R_P);
         let number_of_permutation = 5;
         let number_of_inputs = RATE * number_of_permutation - 1;
         let inputs = (0..number_of_inputs)
@@ -115,7 +115,7 @@ fn test_padding() {
         let mut inputs = inputs.clone();
         inputs.push(Fr::one());
         assert!(inputs.len() % RATE == 0);
-        let mut state = State::<Fr, T>::default();
+        let mut state = State::<T>::default();
         for chunk in inputs.chunks(RATE) {
             let mut inputs = vec![Fr::zero()];
             inputs.extend_from_slice(chunk);
@@ -129,7 +129,7 @@ fn test_padding() {
 
     // w/ extra permutation
     {
-        let mut poseidon = Poseidon2::<Fr, T, RATE>::new(R_F, R_P);
+        let mut poseidon = Poseidon2::<T, RATE>::new(R_F, R_P);
         let number_of_permutation = 5;
         let number_of_inputs = RATE * number_of_permutation;
         let inputs = (0..number_of_inputs)
@@ -145,7 +145,7 @@ fn test_padding() {
         inputs.extend(extra_padding);
 
         assert!(inputs.len() % RATE == 0);
-        let mut state = State::<Fr, T>::default();
+        let mut state = State::<T>::default();
         for chunk in inputs.chunks(RATE) {
             let mut inputs = vec![Fr::zero()];
             inputs.extend_from_slice(chunk);
@@ -160,7 +160,7 @@ fn test_padding() {
     // Much generic comparision
     fn run<const T: usize, const RATE: usize>() {
         for number_of_iters in 1..25 {
-            let mut poseidon = Poseidon2::<Fr, T, RATE>::new(R_F, R_P);
+            let mut poseidon = Poseidon2::<T, RATE>::new(R_F, R_P);
 
             let mut inputs = vec![];
             for number_of_inputs in 0..=number_of_iters {
@@ -180,7 +180,7 @@ fn test_padding() {
             }
 
             let spec = poseidon.spec.clone();
-            let mut state = State::<Fr, T>::default();
+            let mut state = State::<T>::default();
             for chunk in inputs.chunks(RATE) {
                 // First element is zero
                 let mut round_inputs = vec![Fr::zero()];

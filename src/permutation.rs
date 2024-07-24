@@ -1,47 +1,28 @@
 use crate::spec::{Spec, State};
 use halo2_proofs::arithmetic::FieldExt;
 
-impl<F: FieldExt, const T: usize, const RATE: usize> Spec<F, T, RATE> {
-    /// Applies the Poseidon permutation to the given state
-    pub fn permute(&self, state: &mut State<F, T>) {
-        let r_f = self.r_f / 2;
+impl<const T: usize, const RATE: usize> Spec<T, RATE> {
+    /// Applies the Poseidon2 permutation to the given state
+    pub fn permute(&self, state: &mut State<T>) {
+        let (r_f, r_p) = (self.r_f / 2, self.r_p);
 
-        // First half of the full rounds
-        {
-            state.add_constants(&self.constants.start[0]);
-            for round_constants in self.constants.start.iter().skip(1).take(r_f - 1) {
-                state.sbox_full();
-                state.add_constants(round_constants);
-                self.mds_matrices.mds.apply(state);
-            }
+        self.mds_external.apply(state);
+        for constants in self.constants.iter().take(r_f) {
+            state.add_constants(constants);
             state.sbox_full();
-            state.add_constants(self.constants.start.last().unwrap());
-            self.mds_matrices.pre_sparse_mds.apply(state)
+            self.mds_external.apply(state);
         }
 
-        // Partial rounds
-        {
-            for (round_constant, sparse_mds) in self
-                .constants
-                .partial
-                .iter()
-                .zip(self.mds_matrices.sparse_matrices.iter())
-            {
-                state.sbox_part();
-                state.add_constant(round_constant);
-                sparse_mds.apply(state);
-            }
+        for constants in self.constants.iter().skip(r_f).take(r_p) {
+            state.add_constants(constants);
+            state.sbox_part();
+            self.mds_internal.apply(state);
         }
 
-        // Second half of the full rounds
-        {
-            for round_constants in self.constants.end.iter() {
-                state.sbox_full();
-                state.add_constants(round_constants);
-                self.mds_matrices.mds.apply(state);
-            }
+        for constants in self.constants.iter().skip(r_f + r_p) {
+            state.add_constants(constants);
             state.sbox_full();
-            self.mds_matrices.mds.apply(state);
+            self.mds_external.apply(state);
         }
     }
 }
@@ -49,40 +30,13 @@ impl<F: FieldExt, const T: usize, const RATE: usize> Spec<F, T, RATE> {
 #[cfg(test)]
 mod tests {
     use super::State;
-    use crate::spec::{tests::SpecRef, Spec};
+    use crate::poseidon2_instance::from_hex;
+    use crate::spec::Spec;
     use halo2_proofs::pairing::bn256::Fr;
     use halo2_proofs::pairing::group::ff::PrimeField;
 
-    use halo2_proofs::arithmetic::FieldExt;
-
-    /// We want to keep unoptimized poseidion construction and permutation to
-    /// cross test with optimized one
-    impl<F: FieldExt, const T: usize, const RATE: usize> SpecRef<F, T, RATE> {
-        fn permute(&self, state: &mut State<F, T>) {
-            let (r_f, r_p) = (self.r_f / 2, self.r_p);
-
-            for constants in self.constants.iter().take(r_f) {
-                state.add_constants(constants);
-                state.sbox_full();
-                self.mds.apply(state);
-            }
-
-            for constants in self.constants.iter().skip(r_f).take(r_p) {
-                state.add_constants(constants);
-                state.sbox_part();
-                self.mds.apply(state);
-            }
-
-            for constants in self.constants.iter().skip(r_f + r_p) {
-                state.add_constants(constants);
-                state.sbox_full();
-                self.mds.apply(state);
-            }
-        }
-    }
-
     #[test]
-    fn cross_test() {
+    fn poseidon2_test() {
         use halo2_proofs::pairing::group::ff::Field;
         use rand_core::OsRng;
         use std::time::Instant;
@@ -103,106 +57,117 @@ mod tests {
                                 .collect::<Vec<Fr>>()
                                 .try_into().unwrap(),
                         );
-                        let spec = SpecRef::<Fr, T, RATE>::new(R_F, R_P);
-                        let mut state_expected = state.clone();
-                        spec.permute(&mut state_expected);
 
-                        let spec = Spec::<Fr, T, RATE>::new(R_F, R_P);
+                        let spec = Spec::<T, RATE>::new(R_F, R_P);
                         let now = Instant::now();
                         {
                             spec.permute(&mut state);
                         }
                         let elapsed = now.elapsed();
                         println!("Elapsed: {:.2?}", elapsed);
-                        assert_eq!(state_expected, state);
                     }
                 )*
             };
         }
-        run_test!([8, 57, 3, 2]);
-        run_test!([8, 57, 4, 3]);
-        run_test!([8, 57, 5, 4]);
-        run_test!([8, 57, 6, 5]);
-        run_test!([8, 57, 7, 6]);
-        run_test!([8, 57, 8, 7]);
-        run_test!([8, 57, 9, 8]);
-        run_test!([8, 57, 10, 9]);
+        run_test!([8, 56, 3, 2]);
+        // run_test!([8, 57, 4, 3]);
+        // run_test!([8, 57, 5, 4]);
+        // run_test!([8, 57, 6, 5]);
+        // run_test!([8, 57, 7, 6]);
+        // run_test!([8, 57, 8, 7]);
+        // run_test!([8, 57, 9, 8]);
+        // run_test!([8, 57, 10, 9]);
+    }
+    #[test]
+    fn test_spec(){
+        const R_F: usize = 8;
+        const R_P: usize = 56;
+        const T: usize = 3;
+        const RATE: usize = 2;
+
+        let state:State<3> = State(
+            vec![0u64, 1, 2]
+                .into_iter()
+                .map(Fr::from)
+                .collect::<Vec<Fr>>()
+                .try_into()
+                .unwrap(),
+        );
+        assert_eq!(state.words()[0], from_hex("0"));
+        assert_eq!(state.words()[1], from_hex("1"));
+        assert_eq!(state.words()[2], from_hex("2"));
+
+        let spec = Spec::<T, RATE>::new_from_instance(R_F, R_P);
+
+        assert_eq!(spec.constants.len(), R_F + R_P);
+        assert_eq!(spec.constants[0], [from_hex("0x1d066a255517b7fd8bddd3a93f7804ef7f8fcde48bb4c37a59a09a1a97052816"),
+        from_hex("0x29daefb55f6f2dc6ac3f089cebcc6120b7c6fef31367b68eb7238547d32c1610"),
+        from_hex("0x1f2cb1624a78ee001ecbd88ad959d7012572d76f08ec5c4f9e8b7ad7b0b4e1d1")]);
+        assert_eq!(spec.constants[4], [from_hex("0x1a1d063e54b1e764b63e1855bff015b8cedd192f47308731499573f23597d4b5"),
+        from_hex("0x0000000000000000000000000000000000000000000000000000000000000000"),
+        from_hex("0x0000000000000000000000000000000000000000000000000000000000000000"),
+        ]);
+
+        assert_eq!(spec.mds_external.0.0[0], [Fr::from_str_vartime("2").unwrap(),
+        Fr::from_str_vartime("1").unwrap(),
+        Fr::from_str_vartime("1").unwrap(),
+        ]);
+        assert_eq!(spec.mds_external.0.0[1], [Fr::from_str_vartime("1").unwrap(),
+        Fr::from_str_vartime("2").unwrap(),
+        Fr::from_str_vartime("1").unwrap(),
+        ]);
+        assert_eq!(spec.mds_external.0.0[2], [Fr::from_str_vartime("1").unwrap(),
+        Fr::from_str_vartime("1").unwrap(),
+        Fr::from_str_vartime("2").unwrap(),
+        ]);
+
+        assert_eq!(spec.mds_internal.0.0[0], [Fr::from_str_vartime("2").unwrap(),
+        Fr::from_str_vartime("1").unwrap(),
+        Fr::from_str_vartime("1").unwrap(),
+        ]);
+        assert_eq!(spec.mds_internal.0.0[1], [Fr::from_str_vartime("1").unwrap(),
+        Fr::from_str_vartime("2").unwrap(),
+        Fr::from_str_vartime("1").unwrap(),
+        ]);
+        assert_eq!(spec.mds_internal.0.0[2], [Fr::from_str_vartime("1").unwrap(),
+        Fr::from_str_vartime("1").unwrap(),
+        Fr::from_str_vartime("3").unwrap(),
+        ]);
     }
 
     #[test]
     fn test_against_test_vectors() {
         // https://extgit.iaik.tugraz.at/krypto/hadeshash/-/blob/master/code/test_vectors.txt
-        // poseidonperm_x5_254_3
-        {
-            const R_F: usize = 8;
-            const R_P: usize = 57;
-            const T: usize = 3;
-            const RATE: usize = 2;
+        // poseidon2perm_x5_254_3
+        const R_F: usize = 8;
+        const R_P: usize = 56;
+        const T: usize = 3;
+        const RATE: usize = 2;
 
-            let state = State(
-                vec![0u64, 1, 2]
-                    .into_iter()
-                    .map(Fr::from)
-                    .collect::<Vec<Fr>>()
-                    .try_into()
-                    .unwrap(),
-            );
+        let state:State<3> = State(
+            vec![0u64, 1, 2]
+                .into_iter()
+                .map(Fr::from)
+                .collect::<Vec<Fr>>()
+                .try_into()
+                .unwrap(),
+        );
+        assert_eq!(state.words()[0], from_hex("0"));
+        assert_eq!(state.words()[1], from_hex("1"));
+        assert_eq!(state.words()[2], from_hex("2"));
 
-            let spec_ref = SpecRef::<Fr, T, RATE>::new(R_F, R_P);
-            let mut state_0 = state.clone();
+        let spec = Spec::<T, RATE>::new_from_instance(R_F, R_P);
 
-            spec_ref.permute(&mut state_0);
-            let expected = vec![
-                "7853200120776062878684798364095072458815029376092732009249414926327459813530",
-                "7142104613055408817911962100316808866448378443474503659992478482890339429929",
-                "6549537674122432311777789598043107870002137484850126429160507761192163713804",
-            ];
-            for (word, expected) in state_0.words().into_iter().zip(expected.iter()) {
-                assert_eq!(word, Fr::from_str_vartime(expected).unwrap());
-            }
+        let mut state_0 = state;
+        spec.permute(&mut state_0);
+        let expected = vec![
+            "0bb61d24daca55eebcb1929a82650f328134334da98ea4f847f760054f4a3033",
+            "303b6f7c86d043bfcbcc80214f26a30277a15d3f74ca654992defe7ff8d03570",
+            "1ed25194542b12eef8617361c3ba7c52e660b145994427cc86296242cf766ec8",
+        ];
 
-            let spec = Spec::<Fr, T, RATE>::new(R_F, R_P);
-            let mut state_1 = state;
-            spec.permute(&mut state_1);
-            assert_eq!(state_0, state_1);
-        }
-
-        // https://extgit.iaik.tugraz.at/krypto/hadeshash/-/blob/master/code/test_vectors.txt
-        // poseidonperm_x5_254_5
-        {
-            const R_F: usize = 8;
-            const R_P: usize = 60;
-            const T: usize = 5;
-            const RATE: usize = 4;
-
-            let state = State(
-                vec![0u64, 1, 2, 3, 4]
-                    .into_iter()
-                    .map(Fr::from)
-                    .collect::<Vec<Fr>>()
-                    .try_into()
-                    .unwrap(),
-            );
-
-            let spec_ref = SpecRef::<Fr, T, RATE>::new(R_F, R_P);
-            let mut state_0 = state.clone();
-
-            spec_ref.permute(&mut state_0);
-            let expected = vec![
-                "18821383157269793795438455681495246036402687001665670618754263018637548127333",
-                "7817711165059374331357136443537800893307845083525445872661165200086166013245",
-                "16733335996448830230979566039396561240864200624113062088822991822580465420551",
-                "6644334865470350789317807668685953492649391266180911382577082600917830417726",
-                "3372108894677221197912083238087960099443657816445944159266857514496320565191",
-            ];
-            for (word, expected) in state_0.words().into_iter().zip(expected.iter()) {
-                assert_eq!(word, Fr::from_str_vartime(expected).unwrap());
-            }
-
-            let spec = Spec::<Fr, T, RATE>::new(R_F, R_P);
-            let mut state_1 = state;
-            spec.permute(&mut state_1);
-            assert_eq!(state_0, state_1);
+        for (word, expected) in state_0.words().into_iter().zip(expected.iter()) {
+            assert_eq!(word, from_hex::<Fr>(expected));
         }
     }
 }

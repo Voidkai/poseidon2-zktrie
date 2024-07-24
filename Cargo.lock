@@ -608,6 +608,9 @@ name = "poseidon2"
 version = "0.1.0"
 dependencies = [
  "halo2_proofs",
+ "lazy_static",
+ "num-bigint",
+ "num-traits",
  "rand_core",
  "subtle",
 ]
