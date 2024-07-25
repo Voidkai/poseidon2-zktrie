@@ -1,0 +1,77 @@
+[package]
+name = "poseidon2-rs"
+version = "0.0.10"
+authors = ["Kayson"]
+edition = "2018"
+license = "Apache-2.0"
+description = "Poseidon2 hash implementation"
+repository = "https://github.com/Voidkai/poseidon2-rs"
+readme = "README.md"
+
+[dependencies]
+ark-ff = { version = "^0.4.0", default-features = false }
+ark-std = { version = "^0.4.0", default-features = false }
+hex = "0.4"
+serde = "1.0"
+lazy_static = "1.4"
+cfg-if = "1.0"
+sha3 = "0.10"
+sha2 = "0.10"
+blake2 = "0.10"
+# for pederson_hash:
+group_ped = { package = "group", version = "0.12.1", features = ["wnaf-memuse"] }
+bitvec = "1.0"
+byteorder = "1.4"
+
+[dev-dependencies]
+criterion = "0.4"
+
+[features]
+default = []
+asm = ["sha2/asm", "blake2/simd_asm", "ark-ff/asm"]
+
+[[bench]]
+name = "mt_bn256"
+harness = false
+
+[[bench]]
+name = "plain_bn256"
+harness = false
+
+[profile.release]
+# Enable link-time optimization, eliminates more code and inlines across crate boundaries.
+# Default: false
+lto = true
+
+# codegen-units of 1 gives best optimization, but disables parallel building.
+# Default: 16
+codegen-units = 1
+
+# Includes debug information in release builds. Necessary for profiling. Does not
+# slow down the executable.
+debug = true
+
+# The default optimization level is 3 for release mode builds.
+# 0 means disable optimization and is the default for debug mode buids.
+# (Setting opt-level=1 for debug builds is a good way of speeding them up a bit.)
+# "s" means optimize for size, "z" reduces size even more.
+opt-level = 3
+
+[profile.bench]
+# Enable link-time optimization, eliminates more code and inlines across crate boundaries.
+# Default: false
+lto = true
+
+# codegen-units of 1 gives best optimization, but disables parallel building.
+# Default: 16
+codegen-units = 1
+
+# Includes debug information in release builds. Necessary for profiling. Does not
+# slow down the executable.
+debug = true
+
+# The default optimization level is 3 for release mode builds.
+# 0 means disable optimization and is the default for debug mode buids.
+# (Setting opt-level=1 for debug builds is a good way of speeding them up a bit.)
+# "s" means optimize for size, "z" reduces size even more.
+opt-level = 3

@@ -36,6 +36,21 @@ mod tests {
     use halo2_proofs::pairing::group::ff::PrimeField;
 
     #[test]
+    fn sbox_test() {
+        let mut state = State::<3>(
+            vec![0u64, 1, 2]
+                .into_iter()
+                .map(Fr::from)
+                .collect::<Vec<Fr>>()
+                .try_into()
+                .unwrap(),
+        );
+        state.sbox_full();
+        assert_eq!(state.words()[0], from_hex("0x00"));
+        assert_eq!(state.words()[1], from_hex("0x01"));
+        assert_eq!(state.words()[2], from_hex("0x20"));
+    }
+    #[test]
     fn poseidon2_test() {
         use halo2_proofs::pairing::group::ff::Field;
         use rand_core::OsRng;
@@ -193,6 +208,7 @@ mod tests {
 
         let mut state_0 = state;
         spec.permute(&mut state_0);
+
         let expected = vec![
             "0bb61d24daca55eebcb1929a82650f328134334da98ea4f847f760054f4a3033",
             "303b6f7c86d043bfcbcc80214f26a30277a15d3f74ca654992defe7ff8d03570",
